@@ -1,0 +1,79 @@
+[
+  {
+    "id": "baekje",
+    "name": "백제 역사권",
+    "nameEn": "Baekje Historic Areas",
+    "area": "공주·부여·익산",
+    "areaEn": "Gongju · Buyeo · Iksan",
+    "desc": "웅진·사비 시대 왕도와 유네스코 백제역사유적지구를 잇는 코스",
+    "descEn": "Capitals of the Ungjin and Sabi periods and the UNESCO Baekje Historic Areas",
+    "regions": ["공주", "부여", "익산"],
+    "stops": [
+      {"name": "국립공주박물관", "nameEn": "Gongju National Museum"},
+      {"name": "공주 무령왕릉과 왕릉원", "nameEn": "Tomb of King Muryeong and Royal Tombs, Gongju"},
+      {"name": "공주 공산성", "nameEn": "Gongsanseong Fortress, Gongju"},
+      {"name": "국립부여박물관", "nameEn": "Buyeo National Museum"},
+      {"name": "부여 정림사지", "nameEn": "Jeongnimsa Temple Site, Buyeo"},
+      {"name": "부여 부소산성", "nameEn": "Busosanseong Fortress, Buyeo"},
+      {"name": "국립익산박물관", "nameEn": "Iksan National Museum"},
+      {"name": "익산 미륵사지", "nameEn": "Mireuksa Temple Site, Iksan"},
+      {"name": "익산 왕궁리 유적", "nameEn": "Wanggung-ri Archaeological Site, Iksan"}
+    ]
+  },
+  {
+    "id": "gaya",
+    "name": "가야 고분군",
+    "nameEn": "Gaya Tumuli",
+    "area": "김해·고령",
+    "areaEn": "Gimhae · Goryeong",
+    "desc": "금관가야와 대가야의 고분군, 가야 유물을 모은 박물관을 잇는 코스",
+    "descEn": "Tumuli of Geumgwan Gaya and Daegaya, and the museums that hold Gaya artifacts",
+    "regions": ["김해", "고령", "함안", "합천"],
+    "stops": [
+      {"name": "국립김해박물관", "nameEn": "Gimhae National Museum"},
+      {"name": "김해 대성동 고분군", "nameEn": "Daeseong-dong Tumuli, Gimhae"},
+      {"name": "김해 수로왕릉", "nameEn": "Tomb of King Suro, Gimhae"},
+      {"name": "함안 말이산 고분군", "nameEn": "Marisan Tumuli, Haman"},
+      {"name": "고령 지산동 고분군", "nameEn": "Jisan-dong Tumuli, Goryeong"},
+      {"name": "대가야박물관", "nameEn": "Daegaya Museum"}
+    ]
+  },
+  {
+    "id": "silla",
+    "name": "신라 문화권",
+    "nameEn": "Silla Culture",
+    "area": "경주",
+    "areaEn": "Gyeongju",
+    "desc": "천년 왕도 경주의 박물관과 왕릉, 사찰 유적을 잇는 코스",
+    "descEn": "Museums, royal tombs and temple sites of Silla's thousand-year capital",
+    "regions": ["경주"],
+    "stops": [
+      {"name": "국립경주박물관", "nameEn": "Gyeongju National Museum"},
+      {"name": "경주 동궁과 월지", "nameEn": "Donggung Palace and Wolji Pond, Gyeongju"},
+      {"name": "경주 첨성대", "nameEn": "Cheomseongdae Observatory, Gyeongju"},
+      {"name": "경주 대릉원 일원", "nameEn": "Daereungwon Tomb Complex, Gyeongju"},
+      {"name": "경주 황룡사지", "nameEn": "Hwangnyongsa Temple Site, Gyeongju"},
+      {"name": "경주 불국사", "nameEn": "Bulguksa Temple, Gyeongju"},
+      {"name": "경주 석굴암 석굴", "nameEn": "Seokguram Grotto, Gyeongju"}
+    ]
+  },
+  {
+    "id": "confucian",
+    "name": "조선 유교·서원",
+    "nameEn": "Joseon Confucianism & Seowon",
+    "area": "안동·영주",
+    "areaEn": "Andong · Yeongju",
+    "desc": "서원과 종가, 유교 기록 유산이 모인 경북 북부 코스",
+    "descEn": "Seowon academies, clan villages and Confucian archives of northern Gyeongsangbuk-do",
+    "regions": ["안동", "영주", "봉화"],
+    "stops": [
+      {"name": "한국국학진흥원 유교문화박물관", "nameEn": "Confucian Culture Museum (Korean Studies Institute)", "query": "유교문화박물관"},
+      {"name": "안동 도산서원", "nameEn": "Dosanseowon Confucian Academy, Andong"},
+      {"name": "안동 병산서원", "nameEn": "Byeongsanseowon Confucian Academy, Andong"},
+      {"name": "안동 하회마을", "nameEn": "Hahoe Folk Village, Andong"},
+      {"name": "안동 봉정사", "nameEn": "Bongjeongsa Temple, Andong"},
+      {"name": "영주 소수서원", "nameEn": "Sosuseowon Confucian Academy, Yeongju"},
+      {"name": "영주 부석사", "nameEn": "Buseoksa Temple, Yeongju"}
+    ]
+  }
+]
