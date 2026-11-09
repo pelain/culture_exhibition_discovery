@@ -1,5 +1,5 @@
 # 전시 피드를 매일 새로 만들어 GitHub Pages 로 내보낸다 (개인정보처리방침·소개 페이지와 함께).
-# 앱(한국을 보다)은 https://pelain.github.io/culture_exhibition_discovery/feed.json 과 programs.json 을 받아 쓴다.
+# 앱(한국을 보다)은 https://pelain.github.io/culture_exhibition_discovery/ 의 feed.json, programs.json, markets.json(1.1.0~) 을 받아 쓴다.
 #  - Settings → Pages → Source 가 "GitHub Actions" 여야 한다.
 #  - 공공데이터포털 키는 Settings → Secrets and variables → Actions 에 DATA_GO_KR_KEY 로 넣는다 (없어도 돌지만 전시 수가 줄어든다).
 #  - 피드 만들기가 실패하면(전시를 5건도 못 모으면) 저장소에 있는 마지막 site/feed.json 을 그대로 내보낸다.

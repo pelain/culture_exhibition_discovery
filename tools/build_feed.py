@@ -438,12 +438,11 @@ def load_env() -> dict[str, str]:
     return env
 
 
-def datagokr_exhibitions(f: Fetcher, key: str, today: dt.date) -> list[dict]:
-    """한국문화정보원 '한눈에보는문화정보조회서비스' (기간별). 좌표(gpsX, gpsY)가 응답에 들어 있다.
-
-    2026-10-25 실제 키로 확인: 응답 항목 이름이 맞고, 1년 범위 2,015건 가운데 역사·유물 전시 75건이 좌표와 함께 들어온다.
+def datagokr_rows(f: Fetcher, key: str, today: dt.date) -> list[dict[str, str]]:
+    """한국문화정보원 '한눈에보는문화정보조회서비스' (기간별) 의 모든 줄. 전시와 공연을 함께 준다 (realmName 으로 나뉜다).
+    좌표(gpsX, gpsY)가 응답에 들어 있다. 전시와 전통공연이 같은 목록을 나눠 쓰므로 한 번만 받는다.
     """
-    result = []
+    rows: list[dict[str, str]] = []
     start = today - dt.timedelta(days=KEEP_ENDED_DAYS)
     end = today + dt.timedelta(days=365)
     for page in range(1, 60):
@@ -452,30 +451,182 @@ def datagokr_exhibitions(f: Fetcher, key: str, today: dt.date) -> list[dict]:
             "from": start.strftime("%Y%m%d"), "to": end.strftime("%Y%m%d"),
         })
         root = ET.fromstring(f.get(f"{DATA_GO_KR}?{q}", ttl_hours=12).strip())
-        rows = root.findall(".//item")
-        if not rows:
+        items = root.findall(".//item")
+        if not items:
             code = root.findtext(".//resultCode") or root.findtext(".//returnReasonCode") or ""
             if page == 1:
                 log(f"공공데이터포털: 응답에 항목이 없다 (resultCode={code}). 키 승인 상태를 확인할 것.")
             break
-        for it in rows:
-            def t(tag: str) -> str:
-                return (it.findtext(tag) or "").strip()
-            s, e = parse_date(t("startDate")), parse_date(t("endDate"))
-            if "전시" not in t("realmName") or not s or not e or not is_history(t("title"), t("place")):
-                continue
-            try:
-                lat, lon = float(t("gpsY") or 0), float(t("gpsX") or 0)
-            except ValueError:
-                lat = lon = 0.0
-            result.append({
-                "id": "datagokr-" + t("seq"), "source": "공공데이터포털", "title": html.unescape(t("title")), "venue": t("place"),
-                "place": "", "start": s, "end": e, "fee": "", "feeText": "", "image": t("thumbnail"), "url": "", "homepage": "",
-                "address": f"{t('area')} {t('sigungu')}".strip(), "lat": lat if 33 < lat < 39.5 else 0.0,
-                "lon": lon if 124 < lon < 132 else 0.0, "text": "",
-            })
+        rows += [{c.tag: (c.text or "").strip() for c in it} for it in items]
+    return rows
+
+
+def gps(row: dict[str, str]) -> tuple[float, float]:
+    """응답의 좌표 (위도, 경도). 없거나 나라 밖이면 0."""
+    try:
+        lat, lon = float(row.get("gpsY") or 0), float(row.get("gpsX") or 0)
+    except ValueError:
+        return 0.0, 0.0
+    return (lat, lon) if 33 < lat < 39.5 and 124 < lon < 132 else (0.0, 0.0)
+
+
+def datagokr_exhibitions(rows: list[dict[str, str]]) -> list[dict]:
+    """[datagokr_rows] 가운데 역사·유물 전시.
+
+    2026-10-25 실제 키로 확인: 응답 항목 이름이 맞고, 1년 범위 2,015건 가운데 역사·유물 전시 75건이 좌표와 함께 들어온다.
+    """
+    result = []
+    for r in rows:
+        s, e = parse_date(r.get("startDate", "")), parse_date(r.get("endDate", ""))
+        if "전시" not in r.get("realmName", "") or not s or not e or not is_history(r.get("title", ""), r.get("place", "")):
+            continue
+        lat, lon = gps(r)
+        result.append({
+            "id": "datagokr-" + r.get("seq", ""), "source": "공공데이터포털", "title": html.unescape(r.get("title", "")),
+            "venue": r.get("place", ""), "place": "", "start": s, "end": e, "fee": "", "feeText": "", "image": r.get("thumbnail", ""),
+            "url": "", "homepage": "", "address": f"{r.get('area', '')} {r.get('sigungu', '')}".strip(), "lat": lat, "lon": lon, "text": "",
+        })
     log(f"공공데이터포털: 역사·유물 전시 {len(result)}건")
     return result
+
+
+# 국악 분야가 아니어도 제목에 이런 말이 있으면 전통공연으로 본다. '굿'처럼 짧아 다른 말에 섞이는 것은 굿 이름 전체로 적는다.
+TRADITIONAL_WORDS = (
+    "국악", "판소리", "창극", "완창", "민요", "정가", "시나위", "산조", "가야금", "거문고", "대금", "해금", "아쟁", "피리 독주",
+    "사물놀이", "풍물", "농악", "탈춤", "탈놀이", "전통연희", "남사당", "줄타기", "강강술래", "아리랑", "종묘제례", "일무", "처용무",
+    "승무", "살풀이", "태평무", "한량무", "씻김굿", "별신굿", "배뱅이굿", "길굿", "굿놀이", "무형유산", "궁중무용", "궁중음악",
+    "정악", "영산회상", "수제천", "시조창", "판굿", "들놀음", "오광대",
+)
+# 제목에 전통 악기 이름이 들어가도 서양 공연인 경우가 있어 뺀다.
+NOT_TRADITIONAL_WORDS = ("뮤지컬 갈라", "아이돌", "트로트", "K-POP", "케이팝", "힙합", "재즈", "락 페스티벌")
+DATA_GO_KR_DETAIL = "https://apis.data.go.kr/B553457/cultureinfo/detail2"
+
+
+def is_traditional(row: dict[str, str]) -> bool:
+    realm, title = row.get("realmName", ""), html.unescape(html.unescape(row.get("title", "")))
+    if "전시" in realm or any(w in title for w in NOT_TRADITIONAL_WORDS):
+        return False
+    return realm == "국악" or any(w in title for w in TRADITIONAL_WORDS)
+
+
+def datagokr_performances(f: Fetcher, key: str, rows: list[dict[str, str]], today: dt.date) -> list[dict]:
+    """[datagokr_rows] 가운데 전통공연 (국악 분야 + 제목에 전통 공연 단서). 앱의 체험·교육 프로그램과 같은 모양으로 낸다 (kind '공연').
+
+    목록에는 설명·요금·누리집이 없어 상세(detail2, 같은 키·같은 서비스)를 한 건씩 받아 붙인다. 공연이 정해지면 잘 바뀌지 않으므로
+    오래 캐시한다. 같은 공연이 회차마다 따로 올라오므로 제목·장소가 같으면 한 프로그램으로 묶는다.
+    """
+    groups: dict[tuple[str, str], dict] = {}
+    for r in rows:
+        s, e = parse_date(r.get("startDate", "")), parse_date(r.get("endDate", ""))
+        if not s or not e or e < s or e < today or not is_traditional(r):
+            continue
+        lat, lon = gps(r)
+        if not lat:
+            continue
+        title = re.sub(r"\s+", " ", html.unescape(html.unescape(r.get("title", "")))).strip()
+        k = (norm(title), norm(r.get("place", "")))
+        g = groups.get(k)
+        if g is None:
+            g = groups[k] = {"row": r, "title": title, "lat": lat, "lon": lon, "sessions": set()}
+        g["sessions"].add((s, min(e, s + dt.timedelta(days=366))))
+
+    programs = []
+    for g in groups.values():
+        r = g["row"]
+        d: dict[str, str] = {}
+        try:
+            q = urllib.parse.urlencode({"serviceKey": key, "seq": r.get("seq", "")})
+            item = ET.fromstring(f.get(f"{DATA_GO_KR_DETAIL}?{q}", ttl_hours=24 * 7).strip()).find(".//item")
+            if item is not None:
+                d = {c.tag: html.unescape(strip_tags(html.unescape(c.text or ""))).strip() for c in item}
+        except (ET.ParseError, OSError) as ex:
+            log(f"  공연 상세 실패 ({r.get('seq')}): {ex}")
+        sessions = sorted(g["sessions"])
+        url = d.get("url", "")
+        programs.append({
+            # 앱이 참여 도장의 열쇠로 쓴다. 회차 번호 대신 묶는 기준(제목·장소)으로 만들어 회차가 바뀌어도 같은 열쇠가 된다.
+            "id": "k" + hashlib.sha1("|".join((norm(g["title"]), norm(r.get("place", "")))).encode()).hexdigest()[:10],
+            "title": g["title"], "kind": "공연", "desc": re.sub(r"\s+", " ", d.get("contents1", ""))[:240],
+            "schedule": "", "place": r.get("place", ""), "sido": region_of(r.get("area", "")), "gugun": r.get("sigungu", ""),
+            "organizer": "", "contact": d.get("phone", "")[:40], "target": "", "fee": d.get("price", "")[:80],
+            "url": url if url.startswith("http") else "",
+            "start": sessions[0][0].isoformat(), "end": max(e for _, e in sessions).isoformat(),
+            "dates": [st.isoformat() for st, en in sessions if st == en][:PROGRAM_DATES_MAX] if len(sessions) > 1 else [],
+            "lat": round(g["lat"], 6), "lon": round(g["lon"], 6), "approx": False,
+        })
+    programs.sort(key=lambda p: (p["start"], p["title"]))
+    by_sido = ", ".join(f"{k} {v}" for k, v in sorted(
+        {p["sido"]: sum(1 for x in programs if x["sido"] == p["sido"]) for p in programs}.items(), key=lambda kv: -kv[1]))
+    log(f"공공데이터포털: 전통공연 {len(programs)}건 ({by_sido})")
+    return programs
+
+
+# ── 전통시장 ────────────────────────────────────────────────────────────────────
+
+MARKETS_API = "https://api.data.go.kr/openapi/tn_pubr_public_trdit_mrkt_api"
+
+
+def market_days(cycle: str) -> list[int]:
+    """시장개설주기 → 장이 서는 날의 끝자리 (0~9, 10일은 0). '매일'이면 빈 목록.
+
+    2026-11-07 실제 값: 매일, 1일+6일, 2일+7일, 3일+8일, 4일+9일, 5일+10일, 2일+4일+7일+9일, 2일+5일.
+    """
+    return sorted({int(n) % 10 for n in re.findall(r"(\d+)\s*일", cycle)})
+
+
+def datagokr_markets(f: Fetcher, key: str) -> list[dict]:
+    """공공데이터포털 '전국전통시장표준데이터' (소상공인시장진흥공단). 상설장·정기장(5일장), 좌표, 장날, 취급품목.
+
+    약 1,400곳이고 한 해에 한두 번 바뀌므로 하루 캐시로 충분하다. 좌표가 빠진 곳은 주소로 찾고, 못 찾으면 뺀다.
+    """
+    rows: list[dict] = []
+    for page in range(1, 40):
+        q = urllib.parse.urlencode({"serviceKey": key, "pageNo": page, "numOfRows": 100, "type": "json"})
+        try:
+            data = json.loads(f.get(f"{MARKETS_API}?{q}", ttl_hours=24))
+        except (RuntimeError, json.JSONDecodeError) as ex:
+            log(f"전통시장: 받지 못함 ({ex}). 활용신청 상태를 확인할 것.")
+            return []
+        body = (data.get("response", data).get("body") or {})
+        items = body.get("items") or {}
+        items = items.get("item") if isinstance(items, dict) else items
+        if not items:
+            break
+        rows += items if isinstance(items, list) else [items]
+
+    markets, seen, dropped = [], set(), 0
+    for r in rows:
+        name, address = (r.get("mrktNm") or "").strip(), (r.get("rdnmadr") or r.get("lnmadr") or "").strip()
+        if not name or not address:
+            continue
+        mid = "m" + hashlib.sha1(f"{norm(name)}|{norm(address)}".encode()).hexdigest()[:10]
+        if mid in seen:
+            continue
+        seen.add(mid)
+        try:
+            lat, lon = float(r.get("latitude") or 0), float(r.get("longitude") or 0)
+        except ValueError:
+            lat = lon = 0.0
+        if not (33 < lat < 39.5 and 124 < lon < 132):
+            lat, lon = geocode(f, address) or geocode(f, f"{name} {address.split()[0]}") or (0.0, 0.0)
+        if not lat:
+            dropped += 1
+            continue
+        first = address.split()[0].replace("특별차치도", "특별자치도")
+        homepage = (r.get("homepageUrl") or "").strip()
+        if homepage and not homepage.startswith("http"):
+            homepage = "http://" + homepage
+        markets.append({
+            "id": mid, "name": name, "type": (r.get("mrktType") or "").strip(),
+            "days": market_days(r.get("mrktEstblCycle") or ""), "address": address, "sido": region_of(first),
+            "lat": round(lat, 6), "lon": round(lon, 6), "stores": int(r.get("storNumber") or 0) if str(r.get("storNumber") or "").isdigit() else 0,
+            "items": (r.get("trtmntPrdlst") or "").replace("+", ", ")[:120], "phone": (r.get("phoneNumber") or "").strip()[:20],
+            "homepage": homepage[:120], "since": (r.get("estblYear") or "").strip()[:4],
+            "toilet": (r.get("pblicToiletYn") or "") == "Y", "parking": (r.get("prkplceYn") or "") == "Y",
+        })
+    markets.sort(key=lambda m: (m["sido"], m["name"]))
+    log(f"전통시장: {len(markets)}곳 (정기장 {sum(1 for m in markets if m['days'])}곳, 좌표 없어 뺀 곳 {dropped}곳)")
+    return markets
 
 
 # ── 좌표 보완 ───────────────────────────────────────────────────────────────────
@@ -533,15 +684,17 @@ def tag_treasures(text: str, title: str, catalog_names: dict[str, tuple[str, str
     return [], ""
 
 
-def build(args: argparse.Namespace) -> tuple[dict, dict]:
+def build(args: argparse.Namespace) -> tuple[dict, dict, dict]:
     today = dt.datetime.now(KST).date()
     f = Fetcher(args.refresh)
     env = load_env()
 
     catalog = khs_catalog(f)
     raw = nmk_exhibitions(f, today) + portal_exhibitions(f, today, args.max_pages)
+    culture_rows: list[dict[str, str]] = []
     if env.get("DATA_GO_KR_KEY"):
-        raw += datagokr_exhibitions(f, env["DATA_GO_KR_KEY"], today)
+        culture_rows = datagokr_rows(f, env["DATA_GO_KR_KEY"], today)
+        raw += datagokr_exhibitions(culture_rows)
     else:
         log("공공데이터포털: DATA_GO_KR_KEY 가 없어 건너뜀 (get_key.md 참고)")
 
@@ -763,9 +916,15 @@ def build(args: argparse.Namespace) -> tuple[dict, dict]:
     programs = {
         "version": 1,
         "generatedAt": feed["generatedAt"],
-        "programs": khs_programs(f, today, spots),
+        "programs": khs_programs(f, today, spots)
+        + (datagokr_performances(f, env["DATA_GO_KR_KEY"], culture_rows, today) if culture_rows else []),
     }
-    return feed, programs
+    markets = {
+        "version": 1,
+        "generatedAt": feed["generatedAt"],
+        "markets": datagokr_markets(f, env["DATA_GO_KR_KEY"]) if env.get("DATA_GO_KR_KEY") else [],
+    }
+    return feed, programs, markets
 
 
 def main() -> None:
@@ -776,7 +935,7 @@ def main() -> None:
     ap.add_argument("--no-asset", action="store_true", help="앱 내장 스냅숏(app/src/main/assets/feed.json)은 건드리지 않는다")
     args = ap.parse_args()
 
-    feed, programs = build(args)
+    feed, programs, markets = build(args)
     if len(feed["exhibitions"]) < 5:
         sys.exit("전시가 5건도 안 된다. 출처 페이지 구조가 바뀌었을 수 있어 피드를 덮어쓰지 않는다.")
     outputs = [("feed.json", feed)]
@@ -785,6 +944,11 @@ def main() -> None:
         outputs.append(("programs.json", programs))
     else:
         log(f"  ! 프로그램이 {len(programs['programs'])}건뿐이라 programs.json 은 쓰지 않는다")
+    # 시장도 마찬가지: 거의 못 받았으면 어제 파일을 둔다.
+    if len(markets["markets"]) >= 500:
+        outputs.append(("markets.json", markets))
+    else:
+        log(f"  ! 시장이 {len(markets['markets'])}곳뿐이라 markets.json 은 쓰지 않는다")
     for name, data in outputs:
         text = json.dumps(data, ensure_ascii=False, separators=(",", ":"))
         targets = [Path(args.out) / name]
