@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://pelain.github.io/culture_exhibition_discovery/sitemap.xml
