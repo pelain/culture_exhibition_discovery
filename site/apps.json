@@ -1,0 +1,30 @@
+{
+  "version": 1,
+  "updated": "2026-11-19",
+  "apps": [
+    {
+      "key": "watermarble", "package": "com.watermarble.droplet", "published": true,
+      "name": {"ko": "물방울 알림", "en": "WaterMarble"},
+      "line": {"ko": "알림이 화면 위에 물방울로 맺혀요", "en": "Notifications as water droplets on your screen"},
+      "icon": "https://pelain.github.io/culture_exhibition_discovery/apps/watermarble.png"
+    },
+    {
+      "key": "walkerrunner", "package": "com.walkerrunner.app", "published": true,
+      "name": {"ko": "동네에서 뛰자", "en": "Run My Town"},
+      "line": {"ko": "우리 동네 산책·러닝 코스 추천", "en": "Walking and running routes from your door"},
+      "icon": "https://pelain.github.io/culture_exhibition_discovery/apps/walkerrunner.png"
+    },
+    {
+      "key": "gilwiro", "package": "com.gilwiro.app", "published": true,
+      "name": {"ko": "길위로", "en": "Gilwiro"},
+      "line": {"ko": "하루의 길 위에 사진·결제·노래를 모아요", "en": "Your day on a map: photos, spending, music"},
+      "icon": "https://pelain.github.io/culture_exhibition_discovery/apps/gilwiro.png"
+    },
+    {
+      "key": "koreainsight", "package": "com.heritagemap.app", "published": true,
+      "name": {"ko": "한국을 보다", "en": "Korea Heritage: Stamp Tour Map"},
+      "line": {"ko": "국보·보물 전시를 지도에서 찾아요", "en": "Stamp tours of Korea's treasures and exhibitions"},
+      "icon": "https://pelain.github.io/culture_exhibition_discovery/apps/koreainsight.png"
+    }
+  ]
+}
